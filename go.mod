@@ -1,4 +1,4 @@
-module example.com/mod
+module transactions
 
 go 1.20
 

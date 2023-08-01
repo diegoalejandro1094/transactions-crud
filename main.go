@@ -9,18 +9,16 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
-	"transactions-crud/controllers"
+	"transactions/controllers"
 )
 
 func main() {
-	// Conectarse a la base de datos SQLite.
 	db, err := sql.Open("sqlite3", "transactions.db")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	// Crear la tabla "transactions" si aún no existe.
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS transactions (
 		id INTEGER PRIMARY KEY,
 		amount REAL NOT NULL,
@@ -30,16 +28,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Crear los controladores.
 	transactionController := controllers.NewTransactionController(db)
 
-	// Configurar las rutas.
 	r := mux.NewRouter()
 	r.HandleFunc("/transactions", transactionController.CreateTransactionHandler).Methods("POST")
 	r.HandleFunc("/transactions/{id}", transactionController.GetTransactionHandler).Methods("GET")
 	r.HandleFunc("/transactions/{id}", transactionController.UpdateTransactionHandler).Methods("PUT")
+	r.HandleFunc("/transactions/{id}", transactionController.DeleteTransactionHandler).Methods("DELETE")
+	r.HandleFunc("/transactions", transactionController.GetAllTransactionsHandler).Methods("GET")
 
-	// Ejecutar el servidor.
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
