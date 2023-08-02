@@ -2,13 +2,12 @@ package controllers
 
 import (
 	"database/sql"
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"transactions/models"
 	"transactions/services"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type TransactionController struct {
@@ -21,91 +20,87 @@ func NewTransactionController(db *sql.DB) *TransactionController {
 	}
 }
 
-func (c *TransactionController) CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
+func (c *TransactionController) CreateTransactionHandler(ctx *gin.Context) {
 	var transaction models.Transaction
-	err := json.NewDecoder(r.Body).Decode(&transaction)
+	err := ctx.BindJSON(&transaction)
 	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
 
 	id, err := c.service.Insert(transaction.Amount, transaction.Category)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]int64{"id": id})
+	ctx.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
-func (c *TransactionController) GetTransactionHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
+func (c *TransactionController) GetTransactionHandler(ctx *gin.Context) {
+	idStr := ctx.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 
 	transaction, err := c.service.GetByID(id)
 	if err != nil {
-		http.Error(w, "Transaction not found", http.StatusNotFound)
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Transaction not found"})
 		return
 	}
 
-	json.NewEncoder(w).Encode(transaction)
+	ctx.JSON(http.StatusOK, transaction)
 }
 
-func (c *TransactionController) UpdateTransactionHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
+func (c *TransactionController) UpdateTransactionHandler(ctx *gin.Context) {
+	idStr := ctx.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 
 	var transaction models.Transaction
-	err = json.NewDecoder(r.Body).Decode(&transaction)
+	err = ctx.BindJSON(&transaction)
 	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
 
 	err = c.service.Update(id, transaction.Amount, transaction.Category)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	ctx.Status(http.StatusOK)
 }
 
-func (c *TransactionController) GetAllTransactionsHandler(w http.ResponseWriter, r *http.Request) {
+func (c *TransactionController) GetAllTransactionsHandler(ctx *gin.Context) {
 	transactions, err := c.service.GetAll()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	json.NewEncoder(w).Encode(transactions)
+	ctx.JSON(http.StatusOK, transactions)
 }
 
-func (c *TransactionController) DeleteTransactionHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
+func (c *TransactionController) DeleteTransactionHandler(ctx *gin.Context) {
+	idStr := ctx.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 
 	err = c.service.Delete(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	ctx.Status(http.StatusNoContent)
 }

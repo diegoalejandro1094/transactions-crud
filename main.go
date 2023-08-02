@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
 	"transactions/controllers"
 )
@@ -20,22 +20,23 @@ func main() {
 	defer db.Close()
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS transactions (
-		id INTEGER PRIMARY KEY,
-		amount REAL NOT NULL,
-		category TEXT NOT NULL
-	)`)
+        id INTEGER PRIMARY KEY,
+        amount REAL NOT NULL,
+        category TEXT NOT NULL
+    )`)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	transactionController := controllers.NewTransactionController(db)
 
-	r := mux.NewRouter()
-	r.HandleFunc("/transactions", transactionController.CreateTransactionHandler).Methods("POST")
-	r.HandleFunc("/transactions/{id}", transactionController.GetTransactionHandler).Methods("GET")
-	r.HandleFunc("/transactions/{id}", transactionController.UpdateTransactionHandler).Methods("PUT")
-	r.HandleFunc("/transactions/{id}", transactionController.DeleteTransactionHandler).Methods("DELETE")
-	r.HandleFunc("/transactions", transactionController.GetAllTransactionsHandler).Methods("GET")
+	r := gin.Default()
+
+	r.POST("/transactions", transactionController.CreateTransactionHandler)
+	r.GET("/transactions/:id", transactionController.GetTransactionHandler)
+	r.PUT("/transactions/:id", transactionController.UpdateTransactionHandler)
+	r.DELETE("/transactions/:id", transactionController.DeleteTransactionHandler)
+	r.GET("/transactions", transactionController.GetAllTransactionsHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
